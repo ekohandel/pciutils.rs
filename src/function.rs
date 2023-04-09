@@ -5,7 +5,7 @@ use std::fmt::Display;
 
 #[derive(Debug)]
 pub struct Function {
-    bdf: BusDeviceFunction,
+    pub bdf: BusDeviceFunction,
     accessor: Sysfs,
 }
 
