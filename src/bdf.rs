@@ -13,7 +13,7 @@ pub struct BusDeviceFunction {
 }
 
 impl BusDeviceFunction {
-    fn bdf_string(&self) -> String {
+    pub fn bdf_string(&self) -> String {
         if self.domain == 0 {
             format!("{:0>2x}:{:0>2x}.{:x}", self.bus, self.device, self.function)
         } else {
@@ -21,7 +21,7 @@ impl BusDeviceFunction {
         }
     }
 
-    fn bdf_string_with_domain(&self) -> String {
+    pub fn bdf_string_with_domain(&self) -> String {
         format!(
             "{:0>4x}:{:0>2x}:{:0>2x}.{:x}",
             self.domain, self.bus, self.device, self.function

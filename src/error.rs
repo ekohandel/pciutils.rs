@@ -9,6 +9,7 @@ pub enum ErrorKind {
     IntegerParseError,
     InvalidBusDeviceFunction,
     IoError(i32),
+    FormatError,
 }
 
 #[derive(Debug, PartialEq)]
@@ -41,5 +42,20 @@ impl From<std::io::Error> for Error {
             error_kind: ErrorKind::IoError(value.raw_os_error().unwrap_or_default()),
             message: value.to_string(),
         }
+    }
+}
+
+impl From<std::fmt::Error> for Error {
+    fn from(_: std::fmt::Error) -> Self {
+        Error {
+            error_kind: ErrorKind::FormatError,
+            message: String::new(),
+        }
+    }
+}
+
+impl From<crate::error::Error> for std::fmt::Error {
+    fn from(_: crate::error::Error) -> Self {
+        std::fmt::Error {}
     }
 }
