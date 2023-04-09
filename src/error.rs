@@ -45,6 +45,12 @@ impl From<std::io::Error> for Error {
     }
 }
 
+impl From<Error> for std::io::Error {
+    fn from(value: Error) -> Self {
+        std::io::Error::new(std::io::ErrorKind::Other, value.message)
+    }
+}
+
 impl From<std::fmt::Error> for Error {
     fn from(_: std::fmt::Error) -> Self {
         Error {
@@ -54,8 +60,8 @@ impl From<std::fmt::Error> for Error {
     }
 }
 
-impl From<crate::error::Error> for std::fmt::Error {
-    fn from(_: crate::error::Error) -> Self {
+impl From<Error> for std::fmt::Error {
+    fn from(_: Error) -> Self {
         std::fmt::Error {}
     }
 }

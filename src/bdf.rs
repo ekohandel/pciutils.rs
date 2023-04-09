@@ -4,7 +4,7 @@ use regex::Regex;
 use std::fmt::Display;
 use std::str::FromStr;
 
-#[derive(Debug, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Clone)]
 pub struct BusDeviceFunction {
     domain: u16,
     bus: u8,
@@ -13,6 +13,7 @@ pub struct BusDeviceFunction {
 }
 
 impl BusDeviceFunction {
+    pub const FORMAT: &str = "[[[[<domain>]:]<bus>]:][<slot>][.[<func>]]";
     pub fn bdf_string(&self) -> String {
         if self.domain == 0 {
             format!("{:0>2x}:{:0>2x}.{:x}", self.bus, self.device, self.function)
@@ -30,13 +31,13 @@ impl BusDeviceFunction {
 
     fn from_str(s: &str) -> Result<Self> {
         lazy_static! {
-            static ref RE: Regex = Regex::new(
+            static ref FORMAT_REGEX: Regex = Regex::new(
                 r"^([0-9A-Fa-f]{4})?:?([0-9A-Fa-f]{2}):([0-9A-Fa-f]{2}).([0-9A-Fa-f]{1})$"
             )
             .unwrap();
         }
 
-        let caps = RE.captures(s);
+        let caps = FORMAT_REGEX.captures(s);
 
         if caps.is_none() {
             return Err(Error::invalid_bdf(s));
@@ -61,10 +62,10 @@ impl BusDeviceFunction {
 }
 
 impl FromStr for BusDeviceFunction {
-    type Err = crate::error::Error;
+    type Err = std::io::Error;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        Self::from_str(s)
+        Self::from_str(s).map_err(std::io::Error::from)
     }
 }
 
