@@ -3,10 +3,14 @@ use pciutils::parser::Parser;
 use pciutils::sysfs::Sysfs;
 
 fn main() -> Result<()> {
+    env_logger::init();
+
     let parser = Parser::new();
 
-    let functions = Sysfs::discover()?;
-    let functions = parser.filter_slots(functions);
+    let mut functions = Sysfs::discover()?;
+    if let Some(slots) = parser.slots() {
+        functions.retain(|f| slots.clone().into_iter().any(|s| f.bdf == *s))
+    }
 
     for f in functions {
         println!("{}", f);

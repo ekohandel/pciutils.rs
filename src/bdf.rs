@@ -1,63 +1,124 @@
 use crate::error::{Error, Result};
-use lazy_static::lazy_static;
-use regex::Regex;
+use log::trace;
 use std::fmt::Display;
 use std::str::FromStr;
 
-#[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Clone)]
+#[derive(Debug, Eq, Ord, PartialOrd, Clone)]
 pub struct BusDeviceFunction {
-    domain: u16,
-    bus: u8,
-    device: u8,
-    function: u8,
+    domain: Option<u16>,
+    bus: Option<u8>,
+    device: Option<u8>,
+    function: Option<u8>,
 }
 
 impl BusDeviceFunction {
     pub const FORMAT: &str = "[[[[<domain>]:]<bus>]:][<slot>][.[<func>]]";
     pub fn bdf_string(&self) -> String {
-        if self.domain == 0 {
-            format!("{:0>2x}:{:0>2x}.{:x}", self.bus, self.device, self.function)
-        } else {
-            self.bdf_string_with_domain()
-        }
+        let domain = match self.domain {
+            Some(domain) => format!("{:0>4x}:", domain),
+            None => String::new(),
+        };
+
+        let bus = match self.bus {
+            Some(bus) => format!("{:0>2x}", bus),
+            None => String::new(),
+        };
+
+        let device = match self.device {
+            Some(device) => format!("{:0>2x}", device),
+            None => String::new(),
+        };
+
+        let function = match self.function {
+            Some(function) => format!("{:1x}", function),
+            None => String::new(),
+        };
+
+        format!("{}{}:{}.{}", domain, bus, device, function)
+            .trim()
+            .to_owned()
     }
 
-    pub fn bdf_string_with_domain(&self) -> String {
-        format!(
-            "{:0>4x}:{:0>2x}:{:0>2x}.{:x}",
-            self.domain, self.bus, self.device, self.function
-        )
+    pub fn canonical_bdf_string(&self) -> String {
+        if self.domain.is_none() {
+            let mut bdf = self.clone();
+            bdf.domain = Some(0);
+            return bdf.bdf_string();
+        }
+
+        self.bdf_string()
     }
 
     fn from_str(s: &str) -> Result<Self> {
-        lazy_static! {
-            static ref FORMAT_REGEX: Regex = Regex::new(
-                r"^([0-9A-Fa-f]{4})?:?([0-9A-Fa-f]{2}):([0-9A-Fa-f]{2}).([0-9A-Fa-f]{1})$"
-            )
-            .unwrap();
-        }
+        let parts: Vec<_> = s.split('.').collect();
 
-        let caps = FORMAT_REGEX.captures(s);
-
-        if caps.is_none() {
+        if parts.len() > 2 {
             return Err(Error::invalid_bdf(s));
         }
 
-        let caps = caps.unwrap();
+        let mut function = None;
+        if parts.len() == 2 && !parts[1].is_empty() {
+            function = Some(u8::from_str_radix(parts[1], 16).map_err(|_| Error::invalid_bdf(s))?);
+        }
 
-        if caps.get(2).is_none() || caps.get(3).is_none() || caps.get(4).is_none() {
+        let mut parts: Vec<_> = parts[0].split(':').collect();
+
+        let mut device = None;
+        if let Some(part) = parts.pop() {
+            if !part.is_empty() {
+                device = Some(u8::from_str_radix(part, 16).map_err(|_| Error::invalid_bdf(s))?);
+            }
+        }
+
+        let mut bus = None;
+        if let Some(part) = parts.pop() {
+            if !part.is_empty() {
+                bus = Some(u8::from_str_radix(part, 16).map_err(|_| Error::invalid_bdf(s))?);
+            }
+        }
+
+        let mut domain = None;
+        if let Some(part) = parts.pop() {
+            if !part.is_empty() {
+                domain = Some(u16::from_str_radix(part, 16).map_err(|_| Error::invalid_bdf(s))?);
+            }
+        }
+
+        if !parts.is_empty() {
             return Err(Error::invalid_bdf(s));
         }
 
         Ok(BusDeviceFunction {
-            domain: match caps.get(1) {
-                Some(domain) => u16::from_str_radix(domain.as_str(), 16)?,
-                _ => 0,
-            },
-            bus: u8::from_str_radix(caps.get(2).unwrap().as_str(), 16)?,
-            device: u8::from_str_radix(caps.get(3).unwrap().as_str(), 16)?,
-            function: u8::from_str_radix(caps.get(4).unwrap().as_str(), 16)?,
+            domain,
+            bus,
+            device,
+            function,
         })
+    }
+}
+
+impl PartialEq for BusDeviceFunction {
+    fn eq(&self, other: &Self) -> bool {
+        let eq = (self.domain.is_none()
+            || other.domain.is_none()
+            || self.domain.unwrap() == other.domain.unwrap())
+            && (self.bus.is_none()
+                || other.bus.is_none()
+                || self.bus.unwrap() == other.bus.unwrap())
+            && (self.device.is_none()
+                || other.device.is_none()
+                || self.device.unwrap() == other.device.unwrap())
+            && (self.function.is_none()
+                || other.function.is_none()
+                || self.function.unwrap() == other.function.unwrap());
+
+        trace!(
+            target: "bdf",
+            "Comparing for eq of PartialEq:\n {} => {}: {}",
+            self, other, eq
+        );
+
+        eq
     }
 }
 
@@ -81,39 +142,84 @@ mod tests {
     #[test]
     fn test_valid_string_parse() {
         assert_eq!(
+            BusDeviceFunction::from_str("0").unwrap(),
+            BusDeviceFunction {
+                domain: None,
+                bus: None,
+                device: Some(0x00),
+                function: None,
+            }
+        );
+        assert_eq!(
+            BusDeviceFunction::from_str(".0").unwrap(),
+            BusDeviceFunction {
+                domain: None,
+                bus: None,
+                device: None,
+                function: Some(0x0),
+            }
+        );
+        assert_eq!(
             BusDeviceFunction::from_str("0000:00:00.0").unwrap(),
             BusDeviceFunction {
-                domain: 0x0000,
-                bus: 0x00,
-                device: 0x00,
-                function: 0x0,
+                domain: None,
+                bus: Some(0x00),
+                device: Some(0x00),
+                function: Some(0x0),
             }
         );
         assert_eq!(
             BusDeviceFunction::from_str("01:02.3").unwrap(),
             BusDeviceFunction {
-                domain: 0x0000,
-                bus: 0x01,
-                device: 0x02,
-                function: 0x3,
+                domain: None,
+                bus: Some(0x01),
+                device: Some(0x02),
+                function: Some(0x3),
             }
         );
         assert_eq!(
             BusDeviceFunction::from_str("0001:02:03.4").unwrap(),
             BusDeviceFunction {
-                domain: 0x0001,
-                bus: 0x02,
-                device: 0x03,
-                function: 0x4,
+                domain: Some(0x0001),
+                bus: Some(0x02),
+                device: Some(0x03),
+                function: Some(0x4),
             }
         );
         assert_eq!(
             BusDeviceFunction::from_str("0002:34:12.f").unwrap(),
             BusDeviceFunction {
-                domain: 0x0002,
-                bus: 0x34,
-                device: 0x12,
-                function: 0xf,
+                domain: Some(0x0002),
+                bus: Some(0x34),
+                device: Some(0x12),
+                function: Some(0xf),
+            }
+        );
+        assert_eq!(
+            BusDeviceFunction::from_str(":03.4").unwrap(),
+            BusDeviceFunction {
+                domain: None,
+                bus: None,
+                device: Some(0x03),
+                function: Some(0x4),
+            }
+        );
+        assert_eq!(
+            BusDeviceFunction::from_str("::03.4").unwrap(),
+            BusDeviceFunction {
+                domain: None,
+                bus: None,
+                device: Some(0x03),
+                function: Some(0x4),
+            }
+        );
+        assert_eq!(
+            BusDeviceFunction::from_str(".").unwrap(),
+            BusDeviceFunction {
+                domain: None,
+                bus: None,
+                device: None,
+                function: None,
             }
         );
     }
@@ -124,10 +230,6 @@ mod tests {
             Err(Error::invalid_bdf(":0000:00:00.0"))
         );
         assert_eq!(
-            BusDeviceFunction::from_str(":03.4"),
-            Err(Error::invalid_bdf(":03.4"))
-        );
-        assert_eq!(
             BusDeviceFunction::from_str("hello world!"),
             Err(Error::invalid_bdf("hello world!"))
         );
@@ -136,30 +238,40 @@ mod tests {
     fn test_string_format() {
         assert_eq!(
             BusDeviceFunction {
-                domain: 0x0000,
-                bus: 0x00,
-                device: 0x00,
-                function: 0x0,
+                domain: None,
+                bus: None,
+                device: Some(0x00),
+                function: Some(0x0),
+            }
+            .to_string(),
+            ":00.0"
+        );
+        assert_eq!(
+            BusDeviceFunction {
+                domain: None,
+                bus: Some(0x00),
+                device: Some(0x00),
+                function: Some(0x0),
             }
             .to_string(),
             "00:00.0"
         );
         assert_eq!(
             BusDeviceFunction {
-                domain: 0x0001,
-                bus: 0x02,
-                device: 0x03,
-                function: 0x4,
+                domain: Some(0x0001),
+                bus: Some(0x02),
+                device: Some(0x03),
+                function: Some(0x4),
             }
             .to_string(),
             "0001:02:03.4"
         );
         assert_eq!(
             BusDeviceFunction {
-                domain: 0x0002,
-                bus: 0x34,
-                device: 0x12,
-                function: 0xf,
+                domain: Some(0x0002),
+                bus: Some(0x34),
+                device: Some(0x12),
+                function: Some(0xf),
             }
             .to_string(),
             "0002:34:12.f"
