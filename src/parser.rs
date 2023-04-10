@@ -1,4 +1,4 @@
-use crate::bdf::BusDeviceFunction;
+use crate::{bdf::BusDeviceFunction, vdc::VendorDeviceClass};
 use clap::{Arg, ArgMatches, Command};
 use std::str::FromStr;
 
@@ -14,11 +14,22 @@ impl Parser {
                     Arg::new("slot")
                         .short('s')
                         .help(format!(
-                            "{} {}",
+                            "{}\t{}",
                             BusDeviceFunction::FORMAT,
                             "Show only devices in selected slots"
                         ))
                         .value_parser(BusDeviceFunction::from_str)
+                        .action(clap::ArgAction::Append),
+                )
+                .arg(
+                    Arg::new("id")
+                        .short('d')
+                        .help(format!(
+                            "{}\t{}",
+                            VendorDeviceClass::FORMAT,
+                            "Show only devices with specified ID's"
+                        ))
+                        .value_parser(VendorDeviceClass::from_str)
                         .action(clap::ArgAction::Append),
                 )
                 .get_matches(),
@@ -29,6 +40,12 @@ impl Parser {
         self.matches
             .get_many::<BusDeviceFunction>("slot")
             .map(|s| s.collect())
+    }
+
+    pub fn ids(&self) -> Option<Vec<&VendorDeviceClass>> {
+        self.matches
+            .get_many::<VendorDeviceClass>("id")
+            .map(|id| id.collect())
     }
 }
 

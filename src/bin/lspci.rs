@@ -8,8 +8,13 @@ fn main() -> Result<()> {
     let parser = Parser::new();
 
     let mut functions = Sysfs::discover()?;
+
     if let Some(slots) = parser.slots() {
-        functions.retain(|f| slots.clone().into_iter().any(|s| f.bdf == *s))
+        functions.retain(|function| slots.clone().into_iter().any(|slot| *function == *slot))
+    }
+
+    if let Some(ids) = parser.ids() {
+        functions.retain(|function| ids.clone().into_iter().any(|id| *function == *id))
     }
 
     for f in functions {
