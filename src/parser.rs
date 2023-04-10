@@ -14,9 +14,9 @@ impl Parser {
                     Arg::new("slot")
                         .short('s')
                         .help(format!(
-                            "{}\t{}",
+                            "{} {}",
+                            "Show only devices in selected slots",
                             BusDeviceFunction::FORMAT,
-                            "Show only devices in selected slots"
                         ))
                         .value_parser(BusDeviceFunction::from_str)
                         .action(clap::ArgAction::Append),
@@ -25,12 +25,18 @@ impl Parser {
                     Arg::new("id")
                         .short('d')
                         .help(format!(
-                            "{}\t{}",
+                            "{} {}",
+                            "Show only devices with specified ID's",
                             VendorDeviceClass::FORMAT,
-                            "Show only devices with specified ID's"
                         ))
                         .value_parser(VendorDeviceClass::from_str)
                         .action(clap::ArgAction::Append),
+                )
+                .arg(
+                    Arg::new("hexdump")
+                        .short('x')
+                        .help("Show hex-dump of the standard part of the config space".to_string())
+                        .action(clap::ArgAction::SetTrue),
                 )
                 .get_matches(),
         }
@@ -46,6 +52,10 @@ impl Parser {
         self.matches
             .get_many::<VendorDeviceClass>("id")
             .map(|id| id.collect())
+    }
+
+    pub fn hexdump(&self) -> bool {
+        self.matches.get_flag("hexdump")
     }
 }
 
