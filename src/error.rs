@@ -8,6 +8,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum ErrorKind {
     IntegerParseError,
     InvalidBusDeviceFunction,
+    InvalidVendorDeviceClass,
     IoError(i32),
     FormatError,
 }
@@ -22,6 +23,13 @@ impl Error {
     pub fn invalid_bdf(message: &str) -> Self {
         Error {
             error_kind: ErrorKind::InvalidBusDeviceFunction,
+            message: message.to_string(),
+        }
+    }
+
+    pub fn invalid_vdc(message: &str) -> Self {
+        Error {
+            error_kind: ErrorKind::InvalidVendorDeviceClass,
             message: message.to_string(),
         }
     }
