@@ -18,9 +18,15 @@ impl BusDeviceFunction {
         self.bus
     }
 
-    pub fn bdf_string(&self) -> String {
+    pub fn bdf_string(&self, always_domain: bool) -> String {
         let domain = match self.domain {
-            Some(domain) => format!("{:0>4x}:", domain),
+            Some(domain) => {
+                if domain == 0 && !always_domain {
+                    String::new()
+                } else {
+                    format!("{:0>4x}:", domain)
+                }
+            }
             None => String::new(),
         };
 
@@ -45,13 +51,7 @@ impl BusDeviceFunction {
     }
 
     pub fn canonical_bdf_string(&self) -> String {
-        if self.domain.is_none() {
-            let mut bdf = self.clone();
-            bdf.domain = Some(0);
-            return bdf.bdf_string();
-        }
-
-        self.bdf_string()
+        self.bdf_string(true)
     }
 
     fn from_str(s: &str) -> Result<Self> {
@@ -137,7 +137,7 @@ impl FromStr for BusDeviceFunction {
 
 impl Display for BusDeviceFunction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.bdf_string())
+        write!(f, "{}", self.bdf_string(false))
     }
 }
 
