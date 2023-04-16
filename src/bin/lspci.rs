@@ -27,9 +27,13 @@ fn main() -> Result<()> {
         ..HexConfig::default()
     };
     for f in functions {
-        println!("{}", f);
-        if parser.hexdump() {
-            println!("{}\n", config_hex(&f.config()?, hex_config))
+        println!("{}", f.to_string(parser.verbosity())?);
+        if parser.hexdump() > 0 {
+            println!("{}", config_hex(&f.config()?, hex_config))
+        }
+
+        if parser.hexdump() > 0 || parser.verbosity() > 0 {
+            println!();
         }
     }
 
