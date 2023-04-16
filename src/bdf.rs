@@ -13,6 +13,11 @@ pub struct BusDeviceFunction {
 
 impl BusDeviceFunction {
     pub const FORMAT: &str = "[[[[<domain>]:]<bus>]:][<slot>][.[<func>]]";
+
+    pub fn bus(&self) -> Option<u8> {
+        self.bus
+    }
+
     pub fn bdf_string(&self) -> String {
         let domain = match self.domain {
             Some(domain) => format!("{:0>4x}:", domain),

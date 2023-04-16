@@ -36,7 +36,13 @@ impl Parser {
                     Arg::new("hexdump")
                         .short('x')
                         .help("Show hex-dump of the standard part of the config space".to_string())
-                        .action(clap::ArgAction::SetTrue),
+                        .action(clap::ArgAction::Count),
+                )
+                .arg(
+                    Arg::new("verbose")
+                        .short('v')
+                        .help("Be verbose".to_string())
+                        .action(clap::ArgAction::Count),
                 )
                 .get_matches(),
         }
@@ -54,8 +60,12 @@ impl Parser {
             .map(|id| id.collect())
     }
 
-    pub fn hexdump(&self) -> bool {
-        self.matches.get_flag("hexdump")
+    pub fn hexdump(&self) -> u8 {
+        self.matches.get_count("hexdump")
+    }
+
+    pub fn verbosity(&self) -> u8 {
+        self.matches.get_count("verbose")
     }
 }
 
