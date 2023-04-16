@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[derive(Debug, PartialEq)]
 pub struct MemBAR<T> {
     pub address: T,
@@ -5,10 +7,15 @@ pub struct MemBAR<T> {
 }
 
 #[derive(Debug, PartialEq)]
+pub struct IoBAR {
+    pub address: u32,
+}
+
+#[derive(Debug, PartialEq)]
 pub enum BAR {
     MemBAR32(MemBAR<u32>),
     MemBAR64(MemBAR<u64>),
-    IoBAR(u32),
+    IoBAR(IoBAR),
 }
 
 impl BAR {
@@ -17,7 +24,7 @@ impl BAR {
     }
 
     fn is_32bit_mem_bar(word: u32) -> bool {
-        word & 0b10 == 0b00
+        word & 0b110 == 0b000
     }
 
     fn io_bar(word: u32) -> BAR {
@@ -25,7 +32,9 @@ impl BAR {
             log::warn!("Rserved bit set");
         }
 
-        BAR::IoBAR(word & !0b11)
+        BAR::IoBAR(IoBAR {
+            address: word & !0b11,
+        })
     }
 
     fn mem_32bit_bar(word: u32) -> BAR {
@@ -63,5 +72,35 @@ impl BAR {
         }
 
         bars
+    }
+
+    pub fn is_allocated(&self) -> bool {
+        match self {
+            BAR::IoBAR(b) => b.address != 0,
+            BAR::MemBAR32(b) => b.address != 0,
+            BAR::MemBAR64(b) => b.address != 0,
+        }
+    }
+
+    pub fn to_string(&self, _: u8) -> String {
+        match self {
+            BAR::IoBAR(b) => format!("I/O ports at {:0>4x}", b.address),
+            BAR::MemBAR32(b) => format!(
+                "Memory at {:0>8x} (32-bit, {}prefetchable)",
+                b.address,
+                if b.prefechable { "" } else { "non-" }
+            ),
+            BAR::MemBAR64(b) => format!(
+                "Memory at {:0>8x} (64-bit, {}prefetchable)",
+                b.address,
+                if b.prefechable { "" } else { "non-" }
+            ),
+        }
+    }
+}
+
+impl Display for BAR {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_string(0))
     }
 }
