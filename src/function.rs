@@ -1,6 +1,7 @@
 use crate::caps::header::CommonHeader;
 use crate::caps::header::Header;
 use crate::error::Result;
+use crate::kernel::Kernel;
 use crate::vdc::VendorDeviceClass;
 use crate::{bdf::BusDeviceFunction, sysfs::Sysfs};
 use std::fmt::Display;
@@ -10,15 +11,17 @@ pub struct Function {
     bdf: BusDeviceFunction,
     header: Header,
     accessor: Sysfs,
+    kernel: Kernel,
 }
 
 impl Function {
-    pub fn new(bdf: BusDeviceFunction, accessor: Sysfs) -> Result<Self> {
+    pub fn new(bdf: BusDeviceFunction, accessor: Sysfs, kernel: Kernel) -> Result<Self> {
         let config = accessor.config(&bdf)?;
         Ok(Function {
             bdf,
-            accessor,
             header: Header::new(&config)?,
+            accessor,
+            kernel,
         })
     }
 
@@ -65,11 +68,14 @@ impl Function {
     }
 
     pub fn to_string(&self, verbosity: u8) -> Result<String> {
-        Ok(
-            format!("{} {}", self.bdf, self.header.to_string(verbosity)?,)
-                .trim()
-                .to_string(),
+        Ok(format!(
+            "{} {}\n{}",
+            self.bdf,
+            self.header.to_string(verbosity)?,
+            self.kernel.text(&self.bdf, verbosity)?
         )
+        .trim()
+        .to_string())
     }
 }
 

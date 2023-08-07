@@ -6,6 +6,7 @@ use std::str::FromStr;
 use crate::bdf::BusDeviceFunction;
 use crate::error::Result;
 use crate::function::Function;
+use crate::kernel::Kernel;
 
 #[derive(Debug)]
 pub struct Sysfs;
@@ -32,13 +33,13 @@ impl Sysfs {
 
         let mut functions = vec![];
         for bdf in bdfs {
-            functions.push(Function::new(bdf, Self)?);
+            functions.push(Function::new(bdf, Self, Kernel)?);
         }
 
         Ok(functions)
     }
 
-    fn get_function_sub_path(bdf: &BusDeviceFunction, sub: &str) -> PathBuf {
+    pub fn get_function_sub_path(bdf: &BusDeviceFunction, sub: &str) -> PathBuf {
         let mut path: PathBuf = Self::PCI_FUNCTIONS_PATH.into();
 
         path.push(bdf.canonical_bdf_string());
