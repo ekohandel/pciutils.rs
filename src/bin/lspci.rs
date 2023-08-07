@@ -2,6 +2,8 @@ use pciutils::error::Result;
 use pciutils::parser::Parser;
 use pciutils::sysfs::Sysfs;
 
+use pretty_hex::{config_hex, HexConfig};
+
 fn main() -> Result<()> {
     env_logger::init();
 
@@ -17,8 +19,18 @@ fn main() -> Result<()> {
         functions.retain(|function| ids.clone().into_iter().any(|id| *function == *id))
     }
 
+    let hex_config = HexConfig {
+        title: false,
+        width: 16,
+        group: 0,
+        ascii: false,
+        ..HexConfig::default()
+    };
     for f in functions {
         println!("{}", f);
+        if parser.hexdump() {
+            println!("{}", config_hex(&f.config()?, hex_config))
+        }
     }
 
     Ok(())
