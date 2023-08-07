@@ -1,28 +1,32 @@
+use crate::access::Access;
+use crate::bdf::BusDeviceFunction;
 use crate::caps::header::CommonHeader;
 use crate::caps::header::Header;
+use crate::caps::Capability;
+use crate::caps::CapabilityFactory;
 use crate::error::Result;
 use crate::kernel::Kernel;
 use crate::vdc::VendorDeviceClass;
-use crate::{bdf::BusDeviceFunction, sysfs::Sysfs};
 use std::fmt::Display;
 
-#[derive(Debug)]
 pub struct Function {
     bdf: BusDeviceFunction,
     header: Header,
-    accessor: Sysfs,
     kernel: Kernel,
+    capabilities: Result<Vec<Box<dyn Capability>>>,
 }
 
 impl Function {
-    pub fn new(bdf: BusDeviceFunction, accessor: Sysfs, kernel: Kernel) -> Result<Self> {
-        let config = accessor.config(&bdf)?;
-        Ok(Function {
+    pub fn new(bdf: BusDeviceFunction, accessor: Box<dyn Access>, kernel: Kernel) -> Result<Self> {
+        let config = accessor.read(0, 0x1000)?;
+        let function = Function {
             bdf,
             header: Header::new(&config)?,
-            accessor,
             kernel,
-        })
+            capabilities: CapabilityFactory::new(accessor).scan(),
+        };
+
+        Ok(function)
     }
 
     pub fn vendor_id(&self) -> Result<u16> {
@@ -38,7 +42,7 @@ impl Function {
     }
 
     pub fn class_code(&self) -> Result<u16> {
-        self.accessor.class_code(&self.bdf)
+        Ok((self.base_class_code()? as u16) << 8 | self.sub_class_code()? as u16)
     }
 
     pub fn base_class_code(&self) -> Result<u8> {
@@ -68,14 +72,26 @@ impl Function {
     }
 
     pub fn to_string(&self, verbosity: u8) -> Result<String> {
-        Ok(format!(
-            "{} {}\n{}",
-            self.bdf,
-            self.header.to_string(verbosity)?,
-            self.kernel.text(&self.bdf, verbosity)?
-        )
-        .trim()
-        .to_string())
+        let mut text = format!("{} {}\n", self.bdf, self.header.to_string(verbosity)?,);
+
+        if verbosity > 0 {
+            match &self.capabilities {
+                Err(_) => text += "\tCapabilities: <access denied>\n",
+                Ok(capabilities) => {
+                    for cap in capabilities {
+                        text += &format!(
+                            "\tCapabilities: [{:x}] {}\n",
+                            cap.offset()?,
+                            cap.cap_string(verbosity)?
+                        );
+                    }
+                }
+            }
+
+            text += &self.kernel.text(&self.bdf, verbosity)?;
+        }
+
+        Ok(text.trim().to_string())
     }
 }
 

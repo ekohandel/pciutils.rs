@@ -1,8 +1,10 @@
 use std::fs;
 use std::io::Read;
+use std::os::unix::prelude::FileExt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use crate::access::Access;
 use crate::bdf::BusDeviceFunction;
 use crate::error::Result;
 use crate::function::Function;
@@ -33,7 +35,7 @@ impl Sysfs {
 
         let mut functions = vec![];
         for bdf in bdfs {
-            functions.push(Function::new(bdf, Self, Kernel)?);
+            functions.push(Function::new(bdf, Box::new(SysfsAccess::new(bdf)), Kernel)?);
         }
 
         Ok(functions)
@@ -150,5 +152,38 @@ impl Sysfs {
         file.read_to_end(&mut config)?;
 
         Ok(config)
+    }
+}
+
+pub struct SysfsAccess {
+    bdf: BusDeviceFunction,
+}
+
+impl SysfsAccess {
+    pub fn new(bdf: BusDeviceFunction) -> SysfsAccess {
+        SysfsAccess { bdf }
+    }
+}
+
+impl Access for SysfsAccess {
+    fn read(&self, offset: u64, length: usize) -> Result<Vec<u8>> {
+        let path = Sysfs::get_function_sub_path(&self.bdf, "config");
+        let file = fs::File::open(path)?;
+
+        let mut buffer = Vec::new();
+        buffer.resize(length, 0);
+
+        let read_length = file.read_at(&mut buffer[..], offset)?;
+
+        buffer.resize(read_length, 0);
+
+        Ok(buffer)
+    }
+
+    fn write(&self, offset: u64, buffer: &[u8]) -> Result<usize> {
+        let path = Sysfs::get_function_sub_path(&self.bdf, "config");
+        let file = fs::File::options().write(true).open(path)?;
+
+        Ok(file.write_at(buffer, offset)?)
     }
 }

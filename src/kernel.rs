@@ -1,6 +1,6 @@
+use crate::access::sysfs::Sysfs;
 use crate::bdf::BusDeviceFunction;
 use crate::error::Result;
-use crate::sysfs::Sysfs;
 use std::fs::read_link;
 
 #[derive(Debug)]
@@ -15,11 +15,7 @@ impl Kernel {
         ))
     }
 
-    pub fn driver_text(&self, bdf: &BusDeviceFunction, verbosity: u8) -> Result<String> {
-        if verbosity == 0 {
-            return Ok(String::new());
-        }
-
+    pub fn driver_text(&self, bdf: &BusDeviceFunction, _verbosity: u8) -> Result<String> {
         let driver_symlink = Sysfs::get_function_sub_path(bdf, "driver");
         let driver_path = read_link(driver_symlink);
 
@@ -36,11 +32,7 @@ impl Kernel {
         ))
     }
 
-    pub fn module_text(&self, bdf: &BusDeviceFunction, verbosity: u8) -> Result<String> {
-        if verbosity == 0 {
-            return Ok(String::new());
-        }
-
+    pub fn module_text(&self, bdf: &BusDeviceFunction, _verbosity: u8) -> Result<String> {
         let module_symlink = Sysfs::get_function_sub_path(bdf, "driver/module");
         let module_path = read_link(module_symlink);
 
