@@ -13,6 +13,7 @@ pub enum ErrorKind {
     IoError(std::io::ErrorKind),
     FormatError,
     SliceParseError,
+    UnknownCapabilityId,
 }
 
 #[derive(Debug, PartialEq)]
@@ -48,6 +49,14 @@ impl Error {
         let message = format!("Index range {}:{} outside of 0:{}", r.start, r.end, b.len());
         Error {
             error_kind: ErrorKind::SliceParseError,
+            message,
+        }
+    }
+
+    pub fn unknown_capability(id: u8) -> Error {
+        let message = format!("Unknown capability id:{}", id);
+        Error {
+            error_kind: ErrorKind::UnknownCapabilityId,
             message,
         }
     }

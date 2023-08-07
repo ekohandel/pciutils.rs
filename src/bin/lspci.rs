@@ -1,6 +1,6 @@
+use pciutils::access::sysfs::Sysfs;
 use pciutils::error::Result;
 use pciutils::parser::Parser;
-use pciutils::sysfs::Sysfs;
 
 use pretty_hex::{config_hex, HexConfig};
 

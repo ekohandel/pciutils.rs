@@ -3,7 +3,7 @@ use log::trace;
 use std::fmt::Display;
 use std::str::FromStr;
 
-#[derive(Debug, Eq, Ord, PartialOrd, Clone)]
+#[derive(Debug, Eq, Ord, PartialOrd, Clone, Copy)]
 pub struct BusDeviceFunction {
     domain: Option<u16>,
     bus: Option<u8>,
