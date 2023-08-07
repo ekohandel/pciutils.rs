@@ -30,10 +30,12 @@ impl Sysfs {
 
         bdfs.sort();
 
-        Ok(bdfs
-            .into_iter()
-            .map(|bdf| Function::new(bdf, Self))
-            .collect())
+        let mut functions = vec![];
+        for bdf in bdfs {
+            functions.push(Function::new(bdf, Self)?);
+        }
+
+        Ok(functions)
     }
 
     fn get_function_sub_path(bdf: &BusDeviceFunction, sub: &str) -> PathBuf {
@@ -59,6 +61,38 @@ impl Sysfs {
     fn parse_function_parameter_u16(bdf: &BusDeviceFunction, parameter: &str) -> Result<u16> {
         let parameter = Self::get_function_parameter(bdf, parameter)?;
         Ok(u16::from_str_radix(&parameter, 16)?)
+    }
+
+    fn parse_function_parameter_u16_optional(
+        bdf: &BusDeviceFunction,
+        parameter: &str,
+    ) -> Result<Option<u16>> {
+        match Self::parse_function_parameter_u16(bdf, parameter) {
+            Ok(value) => Ok(Some(value)),
+            Err(error) => {
+                if error.is_file_not_found() {
+                    Ok(None)
+                } else {
+                    Err(error)
+                }
+            }
+        }
+    }
+
+    fn parse_function_parameter_u8_optional(
+        bdf: &BusDeviceFunction,
+        parameter: &str,
+    ) -> Result<Option<u8>> {
+        match Self::parse_function_parameter_u8(bdf, parameter) {
+            Ok(value) => Ok(Some(value)),
+            Err(error) => {
+                if error.is_file_not_found() {
+                    Ok(None)
+                } else {
+                    Err(error)
+                }
+            }
+        }
     }
 
     fn parse_function_parameter_u32(bdf: &BusDeviceFunction, parameter: &str) -> Result<u32> {
@@ -89,6 +123,22 @@ impl Sysfs {
 
     pub fn sub_class_code(&self, bdf: &BusDeviceFunction) -> Result<u8> {
         Ok((self.class_code(bdf)? & 0xff).try_into().unwrap())
+    }
+
+    pub fn subsystem_vendor(&self, bdf: &BusDeviceFunction) -> Result<Option<u16>> {
+        Self::parse_function_parameter_u16_optional(bdf, "subsystem_vendor")
+    }
+
+    pub fn subsystem_device(&self, bdf: &BusDeviceFunction) -> Result<Option<u16>> {
+        Self::parse_function_parameter_u16_optional(bdf, "subsystem_device")
+    }
+
+    pub fn secondary_bus_number(&self, bdf: &BusDeviceFunction) -> Result<Option<u8>> {
+        Self::parse_function_parameter_u8_optional(bdf, "secondary_bus_number")
+    }
+
+    pub fn subordinate_bus_number(&self, bdf: &BusDeviceFunction) -> Result<Option<u8>> {
+        Self::parse_function_parameter_u8_optional(bdf, "subordinate_bus_number")
     }
 
     pub fn config(&self, bdf: &BusDeviceFunction) -> Result<Vec<u8>> {
