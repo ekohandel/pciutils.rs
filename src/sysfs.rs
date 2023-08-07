@@ -78,14 +78,17 @@ impl Sysfs {
         Self::parse_function_parameter_u8(bdf, "revision")
     }
 
-    pub fn class_code(&self, bdf: &BusDeviceFunction) -> Result<u8> {
+    pub fn class_code(&self, bdf: &BusDeviceFunction) -> Result<u16> {
         let class_code = Self::parse_function_parameter_u32(bdf, "class")?;
-        Ok((class_code >> 16).try_into().unwrap())
+        Ok(((class_code >> 8) & 0xffff).try_into().unwrap())
+    }
+
+    pub fn base_class_code(&self, bdf: &BusDeviceFunction) -> Result<u8> {
+        Ok(((self.class_code(bdf)? >> 8) & 0xff).try_into().unwrap())
     }
 
     pub fn sub_class_code(&self, bdf: &BusDeviceFunction) -> Result<u8> {
-        let class_code = Self::parse_function_parameter_u32(bdf, "class")?;
-        Ok(((class_code >> 8) & 0xff).try_into().unwrap())
+        Ok((self.class_code(bdf)? & 0xff).try_into().unwrap())
     }
 
     pub fn config(&self, bdf: &BusDeviceFunction) -> Result<Vec<u8>> {
