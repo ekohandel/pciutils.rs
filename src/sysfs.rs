@@ -39,7 +39,7 @@ impl Sysfs {
     fn get_function_sub_path(bdf: &BusDeviceFunction, sub: &str) -> PathBuf {
         let mut path: PathBuf = Self::PCI_FUNCTIONS_PATH.into();
 
-        path.push(bdf.bdf_string_with_domain());
+        path.push(bdf.canonical_bdf_string());
         path.push(sub);
 
         path

@@ -1,4 +1,4 @@
-use crate::{bdf::BusDeviceFunction, function::Function};
+use crate::bdf::BusDeviceFunction;
 use clap::{Arg, ArgMatches, Command};
 use std::str::FromStr;
 
@@ -25,14 +25,10 @@ impl Parser {
         }
     }
 
-    pub fn filter_slots(&self, functions: Vec<Function>) -> Vec<Function> {
-        match self.matches.get_many::<BusDeviceFunction>("slot") {
-            Some(mut slots) => functions
-                .into_iter()
-                .filter(|function| slots.any(|slot| function.bdf == *slot))
-                .collect(),
-            None => functions,
-        }
+    pub fn slots(&self) -> Option<Vec<&BusDeviceFunction>> {
+        self.matches
+            .get_many::<BusDeviceFunction>("slot")
+            .map(|s| s.collect())
     }
 }
 
