@@ -29,7 +29,7 @@ fn main() -> Result<()> {
     for f in functions {
         println!("{}", f);
         if parser.hexdump() {
-            println!("{}", config_hex(&f.config()?, hex_config))
+            println!("{}\n", config_hex(&f.config()?, hex_config))
         }
     }
 
