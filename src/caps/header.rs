@@ -2,6 +2,7 @@ use crate::bar::BAR;
 use crate::caps::binary_parser::BinaryParser;
 use crate::error::{Error, Result};
 use pci_ids::{Device, FromId, Subclass, Vendor};
+
 use std::ops::Range;
 
 pub trait CommonHeader {
@@ -156,6 +157,19 @@ pub trait CommonHeader {
         Ok(text)
     }
 
+    fn bars_string(&self) -> Result<Vec<String>> {
+        let mut text = vec![];
+
+        for bar in self.bars()? {
+            if !bar.is_allocated() {
+                continue;
+            }
+            text.push(format!("{}", bar))
+        }
+
+        Ok(text)
+    }
+
     fn header_layout(b: &[u8]) -> Result<u8> {
         let layout = BinaryParser::le8(
             b,
@@ -196,6 +210,9 @@ impl CommonHeader for Type0Header {
 
         if verbosity >= 1 {
             text = format!("{}\n\t{}", text, self.subsytem_string()?);
+            for bar in self.bars_string()? {
+                text = format!("{}\n\t{}", text, bar);
+            }
         }
 
         Ok(text.trim().to_string())
