@@ -2,8 +2,11 @@
 name = "pciutils"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license-file = "LICENSE.md"
+description = "A clone of pciutils in Rust"
+repository = "https://github.com/ekohandel/pciutils.rs"
+readme = "README.md"
+authors = ["Abe Kohandel"]
 
 [dependencies]
 clap = "4.2.1"
