@@ -1,10 +1,11 @@
 use crate::access::Access;
 use crate::error::Result;
 use std::io::{Error, ErrorKind};
+use std::ops::Range;
 use std::rc::Rc;
 
 use self::power_management::PowerManagementCapability;
-use self::unknown::UnknownCapability;
+use self::unknown::{UnknownCapability, UnknownExtendedCapability};
 
 pub mod binary_parser;
 pub mod header;
@@ -28,7 +29,8 @@ impl CapabilityFactory {
     }
 
     pub fn scan(&self) -> Result<Vec<Box<dyn Capability>>> {
-        let capabilities = self.scan_trad()?;
+        let mut capabilities = self.scan_trad()?;
+        capabilities.append(&mut self.scan_extended()?);
 
         Ok(capabilities)
     }
@@ -58,6 +60,28 @@ impl CapabilityFactory {
         Ok(capabilities)
     }
 
+    fn scan_extended(&self) -> Result<Vec<Box<dyn Capability>>> {
+        let mut capabilities = vec![];
+
+        let mut offset = 0x100;
+
+        while offset != 0 {
+            let id = binary_parser::BinaryParser::le16(
+                &self.access.read(offset.into(), 2)?,
+                Range { start: 0, end: 2 },
+            )?;
+
+            capabilities.push(self.new_extended(id, offset)?);
+
+            offset = binary_parser::BinaryParser::le16(
+                &self.access.read(offset as u64 + 2, 2)?,
+                Range { start: 0, end: 2 },
+            )? >> 4;
+        }
+
+        Ok(capabilities)
+    }
+
     fn new_trad(&self, id: u8, offset: u8) -> Result<Box<dyn Capability>> {
         match id {
             0x1 => Ok(Box::new(PowerManagementCapability::new(
@@ -69,5 +93,12 @@ impl CapabilityFactory {
                 offset,
             )?)),
         }
+    }
+
+    fn new_extended(&self, _id: u16, offset: u16) -> Result<Box<dyn Capability>> {
+        Ok(Box::new(UnknownExtendedCapability::new(
+            Rc::clone(&self.access),
+            offset,
+        )?))
     }
 }
