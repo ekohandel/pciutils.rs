@@ -1,7 +1,5 @@
 use crate::access::Access;
 use crate::error::Result;
-use std::io::{Error, ErrorKind};
-use std::ops::Range;
 use std::rc::Rc;
 
 use self::power_management::PowerManagementCapability;
@@ -41,20 +39,9 @@ impl CapabilityFactory {
         let mut offset: u8 = self.access.read(0x34, 1)?.pop().unwrap_or_default();
 
         while offset != 0 {
-            let id = self.access.read(offset.into(), 1)?.pop().ok_or(Error::new(
-                ErrorKind::PermissionDenied,
-                format!("Unable to read offset {}", offset),
-            ))?;
+            let id = UnknownCapability::id(&self.access, offset)?;
             capabilities.push(self.new_trad(id, offset)?);
-
-            offset = self
-                .access
-                .read(offset as u64 + 1, 1)?
-                .pop()
-                .ok_or(Error::new(
-                    ErrorKind::PermissionDenied,
-                    format!("Unable to read offset {}", offset + 1),
-                ))?;
+            offset = UnknownCapability::next(&self.access, offset)?;
         }
 
         Ok(capabilities)
@@ -66,17 +53,9 @@ impl CapabilityFactory {
         let mut offset = 0x100;
 
         while offset != 0 {
-            let id = binary_parser::BinaryParser::le16(
-                &self.access.read(offset.into(), 2)?,
-                Range { start: 0, end: 2 },
-            )?;
-
+            let id = UnknownExtendedCapability::id(&self.access, offset)?;
             capabilities.push(self.new_extended(id, offset)?);
-
-            offset = binary_parser::BinaryParser::le16(
-                &self.access.read(offset as u64 + 2, 2)?,
-                Range { start: 0, end: 2 },
-            )? >> 4;
+            offset = UnknownExtendedCapability::next(&self.access, offset)?;
         }
 
         Ok(capabilities)
