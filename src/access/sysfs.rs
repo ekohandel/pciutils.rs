@@ -2,6 +2,7 @@ use std::fs;
 use std::io::Read;
 use std::os::unix::prelude::FileExt;
 use std::path::PathBuf;
+use std::rc::Rc;
 use std::str::FromStr;
 
 use crate::access::Access;
@@ -35,7 +36,11 @@ impl Sysfs {
 
         let mut functions = vec![];
         for bdf in bdfs {
-            functions.push(Function::new(bdf, Box::new(SysfsAccess::new(bdf)), Kernel)?);
+            functions.push(Function::new(
+                bdf,
+                Rc::new(Box::new(SysfsAccess::new(bdf))),
+                Kernel,
+            )?);
         }
 
         Ok(functions)
