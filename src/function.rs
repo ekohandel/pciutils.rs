@@ -18,10 +18,9 @@ pub struct Function {
 
 impl Function {
     pub fn new(bdf: BusDeviceFunction, accessor: Box<dyn Access>, kernel: Kernel) -> Result<Self> {
-        let config = accessor.read(0, 0x1000)?;
         let function = Function {
             bdf,
-            header: Header::new(&config)?,
+            header: Header::new(&accessor.read(0, 0x40)?)?,
             kernel,
             capabilities: CapabilityFactory::new(accessor).scan(),
         };
