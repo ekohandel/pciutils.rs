@@ -3,6 +3,7 @@ use crate::error::Result;
 use std::collections::HashSet;
 use std::rc::Rc;
 
+use self::header::{CommonHeader, Header};
 use self::power_management::PowerManagementCapability;
 use self::unknown::{UnknownCapability, UnknownExtendedCapability};
 
@@ -29,7 +30,19 @@ impl CapabilityFactory {
 
     pub fn scan(&self) -> Result<Vec<Box<dyn Capability>>> {
         let mut capabilities = self.scan_trad()?;
-        capabilities.append(&mut self.scan_extended()?);
+
+        let header = Header::new(&self.access.read(0, 0x40)?)?;
+
+        //TODO: use dynamic traits to make this handling easier
+        let has_extended_capabilities = match header {
+            Header::Type0(h) => h.status()? & (1 << 4) > 0,
+            Header::Type1(h) => h.status()? & (1 << 4) > 0,
+        };
+        if has_extended_capabilities {
+            // Some devices advertise extended capabilities eventhough they don't have them. Just
+            // ignore errors in that case.
+            capabilities.append(&mut self.scan_extended().unwrap_or_default());
+        }
 
         Ok(capabilities)
     }
