@@ -8,20 +8,27 @@ use crate::error::Result;
 use crate::kernel::Kernel;
 use crate::vdc::VendorDeviceClass;
 use std::fmt::Display;
+use std::rc::Rc;
 
 pub struct Function {
     bdf: BusDeviceFunction,
     header: Header,
     kernel: Kernel,
+    access: Rc<Box<dyn Access>>,
     capabilities: Result<Vec<Box<dyn Capability>>>,
 }
 
 impl Function {
-    pub fn new(bdf: BusDeviceFunction, accessor: Box<dyn Access>, kernel: Kernel) -> Result<Self> {
+    pub fn new(
+        bdf: BusDeviceFunction,
+        accessor: Rc<Box<dyn Access>>,
+        kernel: Kernel,
+    ) -> Result<Self> {
         let function = Function {
             bdf,
             header: Header::new(&accessor.read(0, 0x40)?)?,
             kernel,
+            access: Rc::clone(&accessor),
             capabilities: CapabilityFactory::new(accessor).scan(),
         };
 
@@ -66,8 +73,22 @@ impl Function {
         }
     }
 
-    pub fn config(&self) -> Result<Vec<u8>> {
-        Ok(self.header.get_raw().to_vec())
+    pub fn config_with_verbosity(&self, verbosity: u8) -> Result<Vec<u8>> {
+        let mut config = vec![];
+
+        if verbosity >= 1 {
+            config = self.access.read(0, 0x40)?
+        }
+
+        if verbosity >= 3 {
+            config.append(&mut self.access.read(0x40, 0x100 - 0x40).unwrap_or_default())
+        }
+
+        if verbosity >= 4 {
+            config.append(&mut self.access.read(0x100, 0x1000 - 0x100).unwrap_or_default())
+        }
+
+        Ok(config)
     }
 
     pub fn to_string(&self, verbosity: u8) -> Result<String> {

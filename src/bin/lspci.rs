@@ -28,8 +28,12 @@ fn main() -> Result<()> {
     };
     for f in functions {
         println!("{}", f.to_string(parser.verbosity())?);
+
         if parser.hexdump() > 0 {
-            println!("{}", config_hex(&f.config()?, hex_config))
+            println!(
+                "{}",
+                config_hex(&f.config_with_verbosity(parser.hexdump())?, hex_config)
+            )
         }
 
         if parser.hexdump() > 0 || parser.verbosity() > 0 {

@@ -21,9 +21,9 @@ pub struct CapabilityFactory {
 }
 
 impl CapabilityFactory {
-    pub fn new(access: Box<dyn Access>) -> CapabilityFactory {
+    pub fn new(access: Rc<Box<dyn Access>>) -> CapabilityFactory {
         CapabilityFactory {
-            access: Rc::new(access),
+            access: Rc::clone(&access),
         }
     }
 
