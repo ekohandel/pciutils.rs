@@ -1,8 +1,8 @@
 [package]
 name = "pciutils"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
-license-file = "LICENSE.md"
+license = "MIT"
 description = "A clone of pciutils in Rust"
 repository = "https://github.com/ekohandel/pciutils.rs"
 readme = "README.md"
