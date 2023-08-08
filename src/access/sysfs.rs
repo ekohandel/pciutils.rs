@@ -173,9 +173,7 @@ impl Access for SysfsAccess {
         let mut buffer = Vec::new();
         buffer.resize(length, 0);
 
-        let read_length = file.read_at(&mut buffer[..], offset)?;
-
-        buffer.resize(read_length, 0);
+        file.read_exact_at(&mut buffer[..], offset)?;
 
         Ok(buffer)
     }
