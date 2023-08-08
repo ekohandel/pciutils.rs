@@ -1,5 +1,6 @@
 use crate::access::Access;
 use crate::error::Result;
+use std::collections::HashSet;
 use std::rc::Rc;
 
 use self::power_management::PowerManagementCapability;
@@ -35,10 +36,13 @@ impl CapabilityFactory {
 
     fn scan_trad(&self) -> Result<Vec<Box<dyn Capability>>> {
         let mut capabilities = vec![];
+        let mut seen = HashSet::from([0]);
 
         let mut offset: u8 = self.access.read(0x34, 1)?.pop().unwrap_or_default();
 
-        while offset != 0 {
+        while !seen.contains(&offset) {
+            seen.insert(offset);
+
             let id = UnknownCapability::id(&self.access, offset)?;
             capabilities.push(self.new_trad(id, offset)?);
             offset = UnknownCapability::next(&self.access, offset)?;
@@ -49,10 +53,13 @@ impl CapabilityFactory {
 
     fn scan_extended(&self) -> Result<Vec<Box<dyn Capability>>> {
         let mut capabilities = vec![];
+        let mut seen = HashSet::from([0]);
 
         let mut offset = 0x100;
 
-        while offset != 0 {
+        while !seen.contains(&offset) {
+            seen.insert(offset);
+
             let id = UnknownExtendedCapability::id(&self.access, offset)?;
             capabilities.push(self.new_extended(id, offset)?);
             offset = UnknownExtendedCapability::next(&self.access, offset)?;
