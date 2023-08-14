@@ -11,7 +11,7 @@ authors = ["Abe Kohandel"]
 [dependencies]
 clap = "4.3.21"
 env_logger = "0.10.0"
-log = "0.4.17"
+log = "0.4.20"
 pci-ids = "0.2.5"
 pretty-hex = "0.3.0"
 
