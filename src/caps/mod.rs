@@ -1,6 +1,7 @@
 use crate::access::Access;
 use crate::error::Result;
 use std::collections::HashSet;
+use std::fmt::Display;
 use std::rc::Rc;
 
 use self::header::{CommonHeader, Header};
@@ -11,6 +12,31 @@ pub mod binary_parser;
 pub mod header;
 pub mod power_management;
 pub mod unknown;
+
+pub struct Flag {
+    name: &'static str,
+    value: bool,
+}
+
+impl Flag {
+    pub fn new(name: &'static str, value: bool) -> Self {
+        Self { name, value }
+    }
+}
+
+impl Display for Flag {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}{}",
+            self.name,
+            match self.value {
+                true => "+",
+                false => "-",
+            }
+        )
+    }
+}
 
 pub trait Capability {
     fn cap_string(&self, _verbosity: u8) -> Result<String>;
