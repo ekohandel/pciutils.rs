@@ -10,7 +10,7 @@ authors = ["Abe Kohandel"]
 
 [dependencies]
 clap = "4.4.4"
-env_logger = "0.10.0"
+env_logger = "0.10.1"
 log = "0.4.20"
 pci-ids = "0.2.5"
 pretty-hex = "0.3.0"
