@@ -9,7 +9,7 @@ readme = "README.md"
 authors = ["Abe Kohandel"]
 
 [dependencies]
-clap = "4.4.4"
+clap = "4.4.11"
 env_logger = "0.10.0"
 log = "0.4.20"
 pci-ids = "0.2.5"
